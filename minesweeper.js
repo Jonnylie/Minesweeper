@@ -1,6 +1,6 @@
 // Logic
 
-const TILE_STATUS = {
+export const TILE_STATUSES = {
   HIDDEN: "hidden",
   MINE: "mine",
   NUMBER: "number",
@@ -15,7 +15,7 @@ export function createBoard(boardSize, numberOfMines) {
     const row = [];
     for (let y = 0; y < boardSize; y++) {
       const element = document.createElement("div");
-      element.dataset.status = TILE_STATUS.HIDDEN;
+      element.dataset.status = TILE_STATUSES.HIDDEN;
       const tile = {
         element,
         x,
@@ -37,14 +37,56 @@ export function createBoard(boardSize, numberOfMines) {
 }
 
 export function markTile(tile) {
-  if (tile.status !== TILE_STATUS.HIDDEN && tile.status !== TILE_STATUS.MARKED)
+  if (
+    tile.status !== TILE_STATUSES.HIDDEN &&
+    tile.status !== TILE_STATUSES.MARKED
+  )
     return;
 
-  if (tile.status === TILE_STATUS.MARKED) {
-    tile.status = TILE_STATUS.HIDDEN;
+  if (tile.status === TILE_STATUSES.MARKED) {
+    tile.status = TILE_STATUSES.HIDDEN;
   } else {
-    tile.status = TILE_STATUS.MARKED;
+    tile.status = TILE_STATUSES.MARKED;
   }
+}
+
+export function revealTile(board, tile) {
+  if (tile.status !== TILE_STATUSES.HIDDEN) {
+    return;
+  }
+
+  if (tile.isMine) {
+    tile.status = TILE_STATUSES.MINE;
+    return;
+  }
+
+  tile.status = TILE_STATUSES.NUMBER;
+
+  const adjacentTiles = nearbyTiles(board, tile);
+  const mines = adjacentTiles.filter((adjTile) => adjTile.isMine);
+  if (mines.length === 0) {
+    adjacentTiles.forEach(revealTile.bind(null, board));
+  } else {
+    tile.element.textContent = mines.length;
+  }
+}
+
+export function checkWin(board) {
+  return board.every((row) =>
+    row.every(
+      (tile) =>
+        tile.status === TILE_STATUSES.NUMBER ||
+        (tile.isMine &&
+          (tile.status === TILE_STATUSES.MARKED ||
+            tile.status === TILE_STATUSES.HIDDEN))
+    )
+  );
+}
+
+export function checkLose(board) {
+  return board.some((row) =>
+    row.some((tile) => tile.status === TILE_STATUSES.MINE)
+  );
 }
 
 function getMinePosition(boardSize, numberOfMines) {
@@ -72,4 +114,17 @@ function randomNumber(max) {
 
 function positionMatch(a, b) {
   return a.x === b.x && a.y === b.y;
+}
+
+export function nearbyTiles(board, { x, y }) {
+  const Tiles = [];
+  for (let xOffSet = -1; xOffSet <= 1; xOffSet++) {
+    for (let yOffSet = -1; yOffSet <= 1; yOffSet++) {
+      const tile = board[x + xOffSet]?.[y + yOffSet];
+      if (tile) {
+        Tiles.push(tile);
+      }
+    }
+  }
+  return Tiles;
 }
